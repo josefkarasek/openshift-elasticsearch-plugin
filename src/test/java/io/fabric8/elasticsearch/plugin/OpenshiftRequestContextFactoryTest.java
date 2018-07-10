@@ -27,6 +27,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -35,9 +36,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestRequest;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-import io.fabric8.elasticsearch.plugin.ConfigurationSettings;
-import io.fabric8.elasticsearch.plugin.OpenshiftRequestContextFactory;
 import io.fabric8.elasticsearch.plugin.OpenshiftRequestContextFactory.OpenshiftRequestContext;
 import io.fabric8.elasticsearch.plugin.acl.UserProjectCache;
 import io.fabric8.elasticsearch.util.RequestUtils;
@@ -52,7 +55,13 @@ import io.fabric8.openshift.api.model.ProjectList;
 import io.fabric8.openshift.api.model.ProjectListBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
 
+@RunWith(value = Parameterized.class)
 public class OpenshiftRequestContextFactoryTest {
+
+    @Parameter(value = 0)
+    public String authHeader;
+    @Parameter(value = 1)
+    public String authToken;
 
     private Settings.Builder settingsBuilder = Settings.builder();
     private OpenshiftRequestContextFactory factory;
@@ -66,9 +75,17 @@ public class OpenshiftRequestContextFactoryTest {
     public void setUp() throws Exception {
         Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
         headers.put(ConfigurationSettings.DEFAULT_AUTH_PROXY_HEADER, Arrays.asList("fooUser"));
-        headers.put("Authorization", Arrays.asList("Bearer ABC123"));
+        headers.put(authHeader, Arrays.asList(authToken));
         request = new TestRestRequest(headers);
         givenUserIsCached(true);
+    }
+
+    @Parameters()
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+          {"Authorization", "Bearer ABC123"},
+          {"x-forwarded-access-token", "ABC123"}
+        });
     }
 
     private void givenUserIsCached(boolean cached) {
